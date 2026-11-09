@@ -1,0 +1,6 @@
+# Whitelist: only the files below are tracked (영상, PPT, 교안 등은 제외)
+/*
+!/.gitignore
+!/.vercelignore
+!/index.html
+!/README.md
