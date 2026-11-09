@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>배열 구매가격 애니메이션</title>
+<style>
+  :root{--bg:#0f172a;--panel:#1e293b;--line:#334155;--text:#e2e8f0;--mute:#94a3b8;--acc:#38bdf8;--hl:#fde047;--ok:#4ade80;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,'Malgun Gothic',sans-serif;padding:16px}
+  h1{font-size:20px;margin:0 0 12px}
+  .grid{display:grid;grid-template-columns:1.1fr 1fr;gap:14px}
+  @media(max-width:800px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{font-size:13px;color:var(--mute);margin:0 0 8px;font-weight:600}
+  pre{margin:0;font-family:Consolas,monospace;font-size:14px}
+  .code div{padding:3px 8px;border-left:4px solid transparent;border-radius:4px;white-space:pre}
+  .code div.on{background:rgba(253,224,71,.18);border-left-color:var(--hl)}
+  .code .no{color:var(--mute);display:inline-block;width:24px}
+  table{border-collapse:separate;border-spacing:4px;width:100%;font-family:Consolas,monospace}
+  th{color:var(--acc);text-align:left;font-size:13px;white-space:nowrap}
+  td{background:var(--bg);text-align:center;padding:8px 4px;border-radius:6px;border:2px solid transparent;transition:.25s}
+  td.idx{background:none;color:var(--mute);font-size:12px;padding:0}
+  td.cur{border-color:var(--hl);background:#3b3a14;color:var(--hl);transform:scale(1.07)}
+  td.done{background:#14532d;color:#bbf7d0}
+  .vars{display:flex;gap:10px;flex-wrap:wrap}
+  .var{flex:1;min-width:90px;background:var(--bg);border:2px solid var(--line);border-radius:8px;padding:8px;text-align:center}
+  .var b{display:block;color:var(--acc);font-family:Consolas,monospace}
+  .var span{font-size:22px;font-family:Consolas,monospace}
+  .var.flash{animation:flash .5s}
+  @keyframes flash{0%{border-color:var(--hl);transform:scale(1.08);background:#3b3a14}100%{border-color:var(--line);transform:scale(1)}}
+  .msg{margin-top:12px;min-height:48px;background:var(--bg);border-radius:8px;padding:10px;color:var(--hl)}
+  .console{min-height:90px;color:var(--ok);font-family:Consolas,monospace;font-size:14px}
+  .console div{animation:pop .3s}
+  @keyframes pop{from{opacity:0;transform:translateX(-8px)}}
+  .ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
+  button{background:var(--acc);border:0;color:#04263a;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px}
+  button.sec{background:var(--line);color:var(--text)}
+  .ctrl label{color:var(--mute);font-size:13px}
+  .prog{height:6px;background:var(--line);border-radius:3px;margin-top:10px;overflow:hidden}
+  .prog i{display:block;height:100%;width:0;background:var(--acc)}
+</style>
+</head>
+<body>
+<h1>배열로 구매가격 계산하기 🍎🍐🍊</h1>
+<div class="grid">
+  <div>
+    <div class="panel"><h2>코드</h2><pre class="code" id="code"></pre></div>
+    <div class="msg" id="msg"></div>
+  </div>
+  <div>
+    <div class="panel"><h2>배열 (같은 번호(index)끼리 짝꿍)</h2>
+      <table id="tbl"></table>
+    </div>
+    <div class="panel" style="margin-top:14px"><h2>변수</h2>
+      <div class="vars">
+        <div class="var" id="v-i"><b>i</b><span>-</span></div>
+        <div class="var" id="v-total"><b>total</b><span>-</span></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:14px"><h2>콘솔 출력</h2><div class="console" id="con"></div></div>
+  </div>
+</div>
+<div class="ctrl">
+  <button id="play">▶ 재생</button>
+  <button class="sec" id="step">한 단계씩 ▶|</button>
+  <button class="sec" id="reset">↺ 처음으로</button>
+  <label>속도 <input type="range" id="speed" min="1" max="10" value="3"></label>
+  <label id="stepinfo"></label>
+</div>
+<div class="prog"><i id="prog"></i></div>
+
+<script>
+const fruits=['사과','배','귤'], price=[100,1000,10000], count=[10,5,10];
+const codeLines=[
+  'const fruits = ["사과", "배", "귤"]',
+  'const price  = [100, 1000, 10000]',
+  'const count  = [10, 5, 10]',
+  'let total = 0',
+  'for (let i = 0; i < fruits.length; i++) {',
+  '    total += price[i] * count[i]',
+  '    console.log(fruits[i], price[i] * count[i])',
+  '}',
+  'console.log(total)'
+];
+
+const steps=[]; let S={i:null,total:null,out:[],rows:0};
+// rows: 0=없음, 1=fruits, 2=+price, 3=+count 까지 메모리에 생성
+const push=(line,msg,changed)=>steps.push({line,msg,changed,i:S.i,total:S.total,out:[...S.out],rows:S.rows,done:S.done||0});
+S.rows=1; push(0,'fruits 배열 생성: 과일 이름 3개 (index 0,1,2)');
+S.rows=2; push(1,'price 배열 생성: 각 과일의 가격 (같은 index = 같은 과일)');
+S.rows=3; push(2,'count 배열 생성: 각 과일의 구매 개수');
+S.total=0; push(3,'total(총 구매가격)을 0으로 시작합니다.','total');
+S.done=0;
+for(let i=0;i<3;i++){
+  S.i=i; push(4,`반복 ${i+1}번째: i = ${i} → fruits[${i}] = "${fruits[i]}"`,'i');
+  const sub=price[i]*count[i], before=S.total; S.total+=sub;
+  push(5,`price[${i}] × count[${i}] = ${price[i]} × ${count[i]} = ${sub}  →  total = ${before} + ${sub} = ${S.total}`,'total');
+  S.out.push(`${fruits[i]} ${sub}`); S.done=i+1;
+  push(6,`${fruits[i]}의 가격 ${sub}원을 출력합니다.`);
+}
+S.i=3; push(4,'i = 3 → 3 < fruits.length(3)? 거짓! 반복을 끝냅니다.','i');
+push(7,'반복문 종료');
+S.out.push(String(S.total)); push(8,`총 구매가격 ${S.total}원을 출력합니다.`);
+
+const $=id=>document.getElementById(id);
+$('code').innerHTML=codeLines.map((t,k)=>`<div><span class="no">${k+1}</span>${t.replace(/</g,'&lt;')}</div>`).join('');
+const rowDefs=[['fruits',fruits],['price',price],['count',count]];
+$('tbl').innerHTML='<tr><th></th>'+[0,1,2].map(k=>`<td class="idx">[${k}]</td>`).join('')+'</tr>'+
+  rowDefs.map(([n,a],r)=>`<tr id="r${r}"><th>${n}</th>${a.map(v=>`<td>${v}</td>`).join('')}</tr>`).join('');
+
+let pos=-1,timer=null;
+function flash(id){const e=$('v-'+id);e.classList.remove('flash');void e.offsetWidth;e.classList.add('flash');}
+function show(n){
+  pos=n;
+  const lines=document.querySelectorAll('.code div');
+  if(n<0){
+    lines.forEach(d=>d.classList.remove('on'));
+    for(let r=0;r<3;r++)$('r'+r).style.visibility='hidden';
+    document.querySelectorAll('#tbl td:not(.idx)').forEach(c=>c.className='');
+    $('v-i').querySelector('span').textContent='-';$('v-total').querySelector('span').textContent='-';
+    $('con').innerHTML='';$('msg').textContent='▶ 재생 또는 한 단계씩 버튼을 눌러보세요.';
+    $('prog').style.width='0';$('stepinfo').textContent=`0 / ${steps.length}`;return;
+  }
+  const s=steps[n],prev=n>0?steps[n-1]:null;
+  lines.forEach((d,k)=>d.classList.toggle('on',k===s.line));
+  for(let r=0;r<3;r++)$('r'+r).style.visibility=r<s.rows?'visible':'hidden';
+  for(let r=0;r<3;r++)[...$('r'+r).querySelectorAll('td')].forEach((c,k)=>{
+    c.className=(s.i!==null&&k===s.i&&s.line>=5&&s.line<=6)||(s.i===k&&s.line===4)?'cur':(k<s.done?'done':'');
+  });
+  $('v-i').querySelector('span').textContent=s.i===null?'-':s.i;
+  $('v-total').querySelector('span').textContent=s.total===null?'-':s.total;
+  if(s.changed)flash(s.changed);
+  if(!prev||prev.out.length!==s.out.length)$('con').innerHTML=s.out.map(o=>`<div>&gt; ${o}</div>`).join('');
+  $('msg').textContent=s.msg;
+  $('prog').style.width=((n+1)/steps.length*100)+'%';
+  $('stepinfo').textContent=`${n+1} / ${steps.length}`;
+}
+const next=()=>{pos<steps.length-1?show(pos+1):stop()};
+const delay=()=>1800-$('speed').value*150;
+function loop(){if(pos>=steps.length-1){stop();return}next();timer=setTimeout(loop,delay())}
+function stop(){clearTimeout(timer);timer=null;$('play').textContent='▶ 재생'}
+$('play').onclick=()=>{if(timer){stop();return}if(pos>=steps.length-1)show(-1);$('play').textContent='⏸ 일시정지';loop()};
+$('step').onclick=()=>{stop();next()};
+$('reset').onclick=()=>{stop();show(-1)};
+show(-1);
+</script>
+</body>
+</html>

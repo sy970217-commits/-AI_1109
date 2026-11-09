@@ -3,149 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>장바구니 계산 놀이</title>
+<title>코드 실행 애니메이션 모음</title>
 <style>
-  :root{--bg:#e8f7ff;--ink:#3a2a66;--pink:#ff6fae;--yel:#ffd43b;--grn:#51cf66;--blu:#4dabf7;--pur:#9775fa;}
+  :root{--bg:#0f172a;--panel:#1e293b;--line:#334155;--text:#e2e8f0;--mute:#94a3b8;--acc:#38bdf8}
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg) radial-gradient(#fff 15%,transparent 16%) 0 0/28px 28px;color:var(--ink);font-family:'Jua','Comic Sans MS','Malgun Gothic',sans-serif;padding:12px}
-  h1{font-size:30px;margin:0 0 10px;text-align:center;background:linear-gradient(90deg,#ff6fae,#ffa94d,#51cf66,#4dabf7,#9775fa);-webkit-background-clip:text;background-clip:text;color:transparent;animation:wob 2s infinite}
-  @keyframes wob{50%{transform:scale(1.04) rotate(-1deg)}}
-  .wrap{display:grid;grid-template-columns:1fr 1.1fr;gap:14px;max-width:1100px;margin:auto}
-  @media(max-width:800px){.wrap{grid-template-columns:1fr}}
-  .card{border:5px solid;border-radius:26px;padding:12px;background:#fff;box-shadow:0 6px 0 rgba(0,0,0,.12)}
-  .left{border-color:var(--pink)} .right{border-color:var(--pur)}
-  .card h2{margin:0 0 8px;font-size:22px;text-align:center}
-  .left h2{color:var(--pink)} .right h2{color:var(--pur)}
-  /* 장바구니 */
-  .list{height:330px;overflow-y:auto;background:#fff0f6;border-radius:16px;padding:8px;border:3px dashed #ffb3d1}
-  .row{display:flex;align-items:center;gap:8px;background:#fff;border-radius:14px;padding:5px 10px;margin-bottom:6px;font-size:17px;animation:drop .5s;border:3px solid #ffd6e7}
-  .row.ing{border-color:var(--yel);background:#fff9db}
-  .row .e{font-size:28px}
-  .row .n{flex:1}
-  .row .p{font-weight:700;color:var(--pink)}
-  @keyframes drop{from{transform:translateY(-40px) scale(.3);opacity:0}}
-  .empty{text-align:center;padding-top:110px;font-size:20px;opacity:.6}
-  .total{margin-top:10px;display:flex;justify-content:space-between;align-items:center;font-size:24px;background:var(--yel);border-radius:18px;padding:8px 16px}
-  .total b{font-size:30px}
-  .cart{display:inline-block;animation:roll 1s infinite alternate}
-  @keyframes roll{to{transform:translateX(8px) rotate(6deg)}}
-  /* 로직 */
-  .grid{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;margin:8px 0}
-  .cell{position:relative;aspect-ratio:1;background:#f3f0ff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;filter:grayscale(1) opacity(.5);transition:.3s}
-  .cell.done{filter:none;background:#d3f9d8}
-  .cell.cur{filter:none;background:var(--yel);animation:bounce .5s infinite alternate;z-index:1}
-  .cell.cur::after{content:'🤖';position:absolute;top:-17px;font-size:17px}
-  @keyframes bounce{to{transform:translateY(-5px) scale(1.25)}}
-  .mid{display:flex;gap:8px}
-  .mid>div{flex:1;border-radius:18px;padding:8px;text-align:center;font-size:17px}
-  .i-box{background:#e7f5ff;border:3px solid var(--blu)}
-  .s-box{background:#fff4e6;border:3px solid #ffa94d}
-  .pig{font-size:44px;display:inline-block}
-  .pig.hop{animation:hop .5s}
-  @keyframes hop{40%{transform:translateY(-14px) scale(1.25) rotate(8deg)}}
-  .big{font-size:26px;font-weight:700}
-  .bubble{margin:8px 0;background:#f8f0fc;border:4px solid var(--pur);border-radius:20px;padding:10px;font-size:19px;min-height:84px;position:relative}
-  pre{font-family:Consolas,monospace;font-size:14px;margin:0;background:#2b2150;color:#eee;border-radius:14px;padding:8px}
-  pre div{padding:2px 6px;border-radius:6px;white-space:pre}
-  pre div.on{background:#ff6fae;color:#fff}
-  .ctrl{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:12px}
-  button{background:var(--pink);border:0;color:#fff;font-weight:700;padding:10px 18px;border-radius:30px;cursor:pointer;font-size:18px;font-family:inherit;box-shadow:0 4px 0 #c2417f}
-  button:active{transform:translateY(3px);box-shadow:none}
-  button.sec{background:var(--blu);box-shadow:0 4px 0 #1c7ed6}
-  .prog{height:12px;background:#fff;border-radius:6px;margin:10px auto 0;max-width:1100px;overflow:hidden;border:2px solid var(--pur)}
-  .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff6fae,#ffd43b,#51cf66);transition:.2s}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,'Malgun Gothic',sans-serif;padding:16px}
+  h1{font-size:22px;margin:0 0 4px}
+  p.sub{margin:0 0 14px;color:var(--mute);font-size:14px}
+  .menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+  .menu button{text-align:left;background:var(--panel);color:var(--text);border:2px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;font-family:inherit;font-size:15px;transition:.15s}
+  .menu button:hover{border-color:var(--acc)}
+  .menu button.sel{border-color:var(--acc);background:#0c4a6e}
+  .menu b{display:block;margin-bottom:4px}
+  .menu span{color:var(--mute);font-size:13px}
+  .viewer{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .bar{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);font-size:14px}
+  .bar a{color:var(--acc)}
+  iframe{width:100%;height:calc(100vh - 230px);min-height:620px;border:0;background:#fff;display:none}
+  .hint{padding:40px 12px;text-align:center;color:var(--mute)}
 </style>
 </head>
 <body>
-<h1>🛒 신나는 장바구니 계산 놀이 🎈</h1>
-<div class="wrap">
-  <div class="card left">
-    <h2><span class="cart">🛒</span> 내 장바구니 (<span id="cnt">0</span>개)</h2>
-    <div class="list" id="list"><div class="empty" id="empty">텅 비었어요~ 🥺<br>시작을 눌러요!</div></div>
-    <div class="total"><span>💰 합계</span><b><span id="total">0</span>원</b></div>
-  </div>
-  <div class="card right">
-    <h2>🤖 컴퓨터는 이렇게 생각해요!</h2>
-    <div>📦 data 상자줄 (50개)</div>
-    <div class="grid" id="grid"></div>
-    <div class="mid">
-      <div class="i-box">🤖가 지금 연 상자 <b>i</b><div class="big" id="iv">-</div></div>
-      <div class="s-box"><span class="pig" id="pig">🐷</span> 저금통 <b>sum</b><div class="big"><span id="sum">0</span>원</div></div>
-    </div>
-    <div class="bubble" id="msg"></div>
-    <pre id="code"></pre>
-  </div>
+<h1>🎬 코드 실행 애니메이션 모음</h1>
+<p class="sub">버튼을 누르면 해당 기능이 아래에 표시됩니다.</p>
+
+<div class="menu" id="menu"></div>
+
+<div class="viewer">
+  <div class="bar"><span id="title">기능을 선택하세요</span><a id="open" href="#" target="_blank" style="display:none">새 창에서 열기 ↗</a></div>
+  <div class="hint" id="hint">👆 위의 버튼 중 하나를 눌러 보세요.</div>
+  <iframe id="frame" title="애니메이션"></iframe>
 </div>
-<div class="ctrl">
-  <button id="play">▶ 시작!</button>
-  <button class="sec" id="step">다음 한 칸 👉</button>
-  <button class="sec" id="reset">↺ 다시!</button>
-  <label>🐢 <input type="range" id="speed" min="1" max="10" value="7"> 🐇</label>
-  <span id="stepinfo"></span>
-</div>
-<div class="prog"><i id="prog"></i></div>
 
 <script>
+const items=[
+  {f:'code_animation.html', t:'1. 숫자 1~100 더하기', d:'변수 sum, for...of 반복문이 한 줄씩 실행되는 모습'},
+  {f:'code_animation2.html', t:'2. 객체 배열 합계 (오타 버그)', d:'amout 오타로 NaN이 되는 과정과 수정본 비교'},
+  {f:'code_animation3.html', t:'3. 사과 가게 (초등학생용)', d:'상자 · 로봇 · 저금통으로 배우는 반복문'},
+  {f:'code_animation4.html', t:'4. 장바구니 계산 놀이', d:'왼쪽 장바구니 + 오른쪽 로직, 50개 데이터'}
+];
 const $=id=>document.getElementById(id);
-const F=[['사과','🍎'],['배','🍐'],['귤','🍊'],['바나나','🍌'],['포도','🍇'],['딸기','🍓'],['수박','🍉'],['복숭아','🍑'],['레몬','🍋'],['키위','🥝']];
-const data=Array.from({length:50},(_,k)=>({name:F[k%10][0],e:F[k%10][1],price:100*(1+(k*7)%10),amount:1+(k*3)%9}));
-const codeLines=['let sum = 0','for (i of data) {   // 상자 50개를 하나씩!','    sum += i.price * i.amount','}'];
-$('code').innerHTML=codeLines.map(t=>`<div>${t}</div>`).join('');
-$('grid').innerHTML=data.map(d=>`<div class="cell">${d.e}</div>`).join('');
-const cells=[...$('grid').children];
-
-const steps=[]; let sum=0;
-const add=o=>steps.push({sum,k:-1,done:0,ing:false,line:-1,...o});
-add({msg:'안녕~! 나는 계산 로봇이야 🤖 상자 50개에 든 과일 값을 다 더해 볼게!'});
-add({line:0,msg:'먼저 🐷 저금통(sum)을 0원으로 준비! 꿀꿀~'});
-data.forEach((d,k)=>{
-  const sub=d.price*d.amount, b=sum;
-  add({k,done:k,line:1,ing:true,msg:`${k+1}번째 상자 열려라 뿅! 📦 ${d.e} ${d.name} 나왔다!`});
-  sum+=sub;
-  add({k,done:k,line:2,ing:true,ok:true,msg:`${d.e} ${d.price}원 × ${d.amount}개 = ${sub}원!  🐷 ${b} + ${sub} = ${sum}원 꿀꺽~`,pop:true});
-});
-add({done:50,line:3,msg:`상자가 다 끝났어요! 반복 끝~ 🎉 짝짝짝! 총 ${sum}원이에요!`,pop:true});
-
-let pos=-1,timer=null,shown=0;
-function show(n){
-  pos=n;
-  if(n<0){
-    cells.forEach(c=>c.className='cell');$('list').innerHTML='<div class="empty" id="empty">텅 비었어요~ 🥺<br>시작을 눌러요!</div>';shown=0;
-    $('cnt').textContent=0;$('total').textContent=0;$('iv').textContent='-';$('sum').textContent=0;
-    [...$('code').children].forEach(d=>d.classList.remove('on'));
-    $('msg').textContent='▶ 시작 버튼을 눌러 봐요!';$('prog').style.width='0';$('stepinfo').textContent='';return;
-  }
-  const s=steps[n];
-  cells.forEach((c,j)=>c.className='cell'+(j===s.k&&s.k>=0?' cur':(j<s.done?' done':'')));
-  [...$('code').children].forEach((d,j)=>d.classList.toggle('on',j===s.line));
-  const prevSum=n>0?steps[n-1].sum:0;
-  // 장바구니 (왼쪽)
-  const list=$('list');
-  if(n<steps.length-1 && s.k>=0){
-    if(s.k>=shown){ // 새 항목 추가
-      const e=$('empty');if(e)e.remove();
-      list.insertAdjacentHTML('beforeend',`<div class="row ing" id="r${s.k}"><span class="e">${data[s.k].e}</span><span class="n">${data[s.k].name} ${data[s.k].price}원 × ${data[s.k].amount}개</span><span class="p" id="p${s.k}">담는 중...</span></div>`);
-      shown=s.k+1;list.scrollTop=list.scrollHeight;
-    }
-    if(s.ok){const r=$('r'+s.k);r.classList.remove('ing');$('p'+s.k).textContent=(data[s.k].price*data[s.k].amount)+'원';}
-  }
-  $('cnt').textContent=s.ok?s.k+1:Math.max(0,(s.k<0?s.done:s.k));
-  $('total').textContent=s.sum;
-  $('iv').textContent=s.k>=0?`${s.k+1}번째 ${data[s.k].e}`:'-';
-  $('sum').textContent=s.sum;
-  $('msg').textContent=s.msg;
-  if(s.pop){const p=$('pig');p.classList.remove('hop');void p.offsetWidth;p.classList.add('hop')}
-  $('prog').style.width=((n+1)/steps.length*100)+'%';
-  $('stepinfo').textContent=`${n+1} / ${steps.length}`;
-}
-const next=()=>{pos<steps.length-1?show(pos+1):stop()};
-const delay=()=>1500-$('speed').value*135;
-function loop(){if(pos>=steps.length-1){stop();return}next();timer=setTimeout(loop,delay())}
-function stop(){clearTimeout(timer);timer=null;$('play').textContent='▶ 시작!'}
-$('play').onclick=()=>{if(timer){stop();$('play').textContent='▶ 계속!';return}if(pos>=steps.length-1)show(-1);$('play').textContent='⏸ 잠깐!';loop()};
-$('step').onclick=()=>{stop();next()};
-$('reset').onclick=()=>{stop();show(-1)};
-show(-1);
+$('menu').innerHTML=items.map((it,k)=>`<button data-k="${k}"><b>${it.t}</b><span>${it.d}</span></button>`).join('');
+$('menu').onclick=e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  const it=items[b.dataset.k];
+  document.querySelectorAll('.menu button').forEach(x=>x.classList.toggle('sel',x===b));
+  $('hint').style.display='none';
+  $('frame').style.display='block';
+  $('frame').src=it.f;
+  $('title').textContent=it.t;
+  $('open').href=it.f; $('open').style.display='';
+};
 </script>
 </body>
 </html>

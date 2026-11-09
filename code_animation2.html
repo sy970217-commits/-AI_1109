@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>객체 배열 반복 애니메이션</title>
+<style>
+  :root{--bg:#0f172a;--panel:#1e293b;--line:#334155;--text:#e2e8f0;--mute:#94a3b8;--acc:#38bdf8;--hl:#fde047;--ok:#4ade80;--bad:#f87171;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,'Malgun Gothic',sans-serif;padding:16px}
+  h1{font-size:20px;margin:0 0 8px}
+  .grid{display:grid;grid-template-columns:1.1fr 1fr;gap:14px}
+  @media(max-width:800px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{font-size:13px;color:var(--mute);margin:0 0 8px;font-weight:600}
+  pre{margin:0;font-family:Consolas,monospace;font-size:14px}
+  .code div{padding:3px 8px;border-left:4px solid transparent;border-radius:4px;white-space:pre}
+  .code div.on{background:rgba(253,224,71,.18);border-left-color:var(--hl)}
+  .code .no{color:var(--mute);display:inline-block;width:24px}
+  .modes{display:flex;gap:8px;margin-bottom:10px}
+  .modes button{background:var(--line);color:var(--text)}
+  .modes button.sel{background:var(--acc);color:#04263a}
+  .cards{display:flex;gap:10px;flex-wrap:wrap}
+  .card{flex:1;min-width:150px;background:var(--bg);border:2px solid var(--line);border-radius:8px;padding:8px;font-family:Consolas,monospace;font-size:14px;opacity:0;transform:translateY(8px);transition:.35s}
+  .card.show{opacity:1;transform:none}
+  .card.cur{border-color:var(--hl);background:#3b3a14;transform:scale(1.04)}
+  .card.done{border-color:#166534;background:#14532d}
+  .card h3{margin:0 0 4px;font-size:12px;color:var(--mute);font-weight:600}
+  .card .kv{display:flex;justify-content:space-between;padding:2px 4px;border-radius:4px}
+  .card .kv.pick{background:rgba(56,189,248,.3)}
+  .card .kv.miss{background:rgba(248,113,113,.3);color:var(--bad)}
+  .vars{display:flex;gap:10px;flex-wrap:wrap}
+  .var{flex:1;min-width:110px;background:var(--bg);border:2px solid var(--line);border-radius:8px;padding:8px;text-align:center}
+  .var b{display:block;color:var(--acc);font-family:Consolas,monospace}
+  .var span{font-size:20px;font-family:Consolas,monospace}
+  .var.flash{animation:flash .5s}
+  @keyframes flash{0%{border-color:var(--hl);transform:scale(1.08);background:#3b3a14}100%{border-color:var(--line);transform:scale(1)}}
+  .msg{margin-top:12px;min-height:56px;background:var(--bg);border-radius:8px;padding:10px;color:var(--hl)}
+  .msg.err{color:var(--bad)}
+  .console{min-height:40px;color:var(--ok);font-family:Consolas,monospace;font-size:14px}
+  .ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
+  button{background:var(--acc);border:0;color:#04263a;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px}
+  button.sec{background:var(--line);color:var(--text)}
+  .ctrl label{color:var(--mute);font-size:13px}
+  .prog{height:6px;background:var(--line);border-radius:3px;margin-top:10px;overflow:hidden}
+  .prog i{display:block;height:100%;width:0;background:var(--acc)}
+</style>
+</head>
+<body>
+<h1>객체 배열 + for...of 로 합계 구하기</h1>
+<div class="modes">
+  <button id="m-bug" class="sel">원본 (amout 오타)</button>
+  <button id="m-fix">수정본 (amount)</button>
+</div>
+<div class="grid">
+  <div>
+    <div class="panel"><h2>코드</h2><pre class="code" id="code"></pre></div>
+    <div class="msg" id="msg"></div>
+  </div>
+  <div>
+    <div class="panel"><h2>data 배열 (객체 2개)</h2><div class="cards" id="cards"></div></div>
+    <div class="panel" style="margin-top:14px"><h2>변수</h2>
+      <div class="vars">
+        <div class="var" id="v-i"><b>i</b><span>-</span></div>
+        <div class="var" id="v-sum"><b>sum</b><span>-</span></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:14px"><h2>콘솔 출력</h2><div class="console" id="con"></div></div>
+  </div>
+</div>
+<div class="ctrl">
+  <button id="play">▶ 재생</button>
+  <button class="sec" id="step">한 단계씩 ▶|</button>
+  <button class="sec" id="reset">↺ 처음으로</button>
+  <label>속도 <input type="range" id="speed" min="1" max="10" value="3"></label>
+  <label id="stepinfo"></label>
+</div>
+<div class="prog"><i id="prog"></i></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const items=[{name:'사과',price:100,amount:5},{name:'사과',price:103,amount:52}];
+let fixed=false, steps=[], codeLines=[];
+
+function build(){
+  const key=fixed?'amount':'amout';
+  codeLines=[
+    'let data = [',
+    '  { "사과":100, "amount": 5 },',
+    '  { "사과":103, "amount": 52 },',
+    ']',
+    'let sum = 0',
+    'for (i of data) {   // 2개 → {} 안을 2회 반복',
+    '    sum += i.사과 * i.'+key,
+    '}',
+    'console.log(sum)   // 결과 확인용으로 추가'
+  ];
+  steps=[];
+  let sum=null, cur=-1, done=0, out=[], cards=0;
+  const push=(lines,msg,o={})=>steps.push({lines,msg,sum,cur,done,out:[...out],cards,i:cur<0?null:items[cur],...o});
+  cards=2; push([0,3],'data 배열을 만듭니다. 안에 객체 { }가 2개 들어 있습니다. (data[0], data[1])');
+  sum=0; push([4],'합계를 저장할 변수 sum을 0으로 시작합니다.',{changed:'sum'});
+  items.forEach((it,k)=>{
+    cur=k; push([5],`반복 ${k+1}번째: data[${k}]를 꺼내 i에 저장합니다. 이제 i는 { 사과:${it.price}, amount:${it.amount} } 입니다.`,{changed:'i'});
+    if(fixed){
+      const sub=it.price*it.amount, b=sum; sum+=sub;
+      push([6],`i.사과 × i.amount = ${it.price} × ${it.amount} = ${sub}  →  sum = ${b} + ${sub} = ${sum}`,{changed:'sum',pick:'both'});
+    }else{
+      sum=NaN;
+      push([6],`i.사과 = ${it.price}, 그런데 i.amout 라는 키는 없습니다(오타!) → undefined. ${it.price} × undefined = NaN → sum = NaN`,{changed:'sum',pick:'miss',err:true});
+    }
+    done=k+1; push([7],`${k+1}번째 반복 끝.`,{});
+  });
+  cur=-1; push([7],'배열 끝! 반복문을 빠져나옵니다.');
+  out.push(String(sum));
+  push([8],fixed?`최종 합계 ${sum} 출력 (100×5 + 103×52 = 500 + 5356)`:'NaN(숫자가 아님) 출력. 오타 하나 때문에 계산 전체가 깨졌습니다! "수정본" 버튼으로 amount로 고쳐 보세요.',{err:!fixed});
+}
+
+function renderStatic(){
+  $('code').innerHTML=codeLines.map((t,k)=>`<div><span class="no">${k+1}</span>${t.replace(/</g,'&lt;')}</div>`).join('');
+  $('cards').innerHTML=items.map((it,k)=>`<div class="card" id="c${k}"><h3>data[${k}]</h3>
+    <div class="kv" data-k="p"><span>"사과"</span><span>${it.price}</span></div>
+    <div class="kv" data-k="a"><span>"amount"</span><span>${it.amount}</span></div></div>`).join('');
+}
+
+let pos=-1,timer=null;
+function flash(id){const e=$('v-'+id);e.classList.remove('flash');void e.offsetWidth;e.classList.add('flash')}
+function show(n){
+  pos=n;
+  const lines=document.querySelectorAll('.code div');
+  if(n<0){
+    lines.forEach(d=>d.classList.remove('on'));
+    document.querySelectorAll('.card').forEach(c=>c.className='card');
+    document.querySelectorAll('.kv').forEach(c=>c.className='kv');
+    $('v-i').querySelector('span').textContent='-';$('v-sum').querySelector('span').textContent='-';
+    $('con').innerHTML='';$('msg').className='msg';$('msg').textContent='▶ 재생 또는 한 단계씩 버튼을 눌러보세요.';
+    $('prog').style.width='0';$('stepinfo').textContent=`0 / ${steps.length}`;return;
+  }
+  const s=steps[n],prev=n>0?steps[n-1]:null;
+  lines.forEach((d,k)=>d.classList.toggle('on',k>=s.lines[0]&&k<=s.lines[s.lines.length-1]));
+  items.forEach((_,k)=>{
+    const c=$('c'+k);
+    c.className='card'+(k<s.cards?' show':'')+(k===s.cur?' cur':(k<s.done?' done':''));
+    const kv=c.querySelectorAll('.kv');
+    kv[0].className='kv'+(k===s.cur&&s.pick?' pick':'');
+    kv[1].className='kv'+(k===s.cur&&s.pick==='both'?' pick':(k===s.cur&&s.pick==='miss'?' miss':''));
+  });
+  $('v-i').querySelector('span').textContent=s.i?`{사과:${s.i.price}, amount:${s.i.amount}}`:'-';
+  $('v-sum').querySelector('span').textContent=s.sum===null?'-':s.sum;
+  if(s.changed)flash(s.changed);
+  if(!prev||prev.out.length!==s.out.length)$('con').innerHTML=s.out.map(o=>`<div>&gt; ${o}</div>`).join('');
+  $('msg').className='msg'+(s.err?' err':'');$('msg').textContent=s.msg;
+  $('prog').style.width=((n+1)/steps.length*100)+'%';
+  $('stepinfo').textContent=`${n+1} / ${steps.length}`;
+}
+const next=()=>{pos<steps.length-1?show(pos+1):stop()};
+const delay=()=>2200-$('speed').value*180;
+function loop(){if(pos>=steps.length-1){stop();return}next();timer=setTimeout(loop,delay())}
+function stop(){clearTimeout(timer);timer=null;$('play').textContent='▶ 재생'}
+function setMode(f){stop();fixed=f;$('m-bug').classList.toggle('sel',!f);$('m-fix').classList.toggle('sel',f);build();renderStatic();show(-1)}
+$('play').onclick=()=>{if(timer){stop();return}if(pos>=steps.length-1)show(-1);$('play').textContent='⏸ 일시정지';loop()};
+$('step').onclick=()=>{stop();next()};
+$('reset').onclick=()=>{stop();show(-1)};
+$('m-bug').onclick=()=>setMode(false);
+$('m-fix').onclick=()=>setMode(true);
+setMode(false);
+</script>
+</body>
+</html>
