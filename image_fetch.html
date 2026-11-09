@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pixabay 이미지 가져오기</title>
+<style>
+  :root{--bg:#0f172a;--panel:#1e293b;--line:#334155;--text:#e2e8f0;--mute:#94a3b8;--acc:#38bdf8;--ok:#4ade80;--bad:#f87171}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,'Malgun Gothic',sans-serif;padding:16px}
+  h1{font-size:22px;margin:0 0 12px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+  .panel h2{font-size:14px;color:var(--mute);margin:0 0 8px;font-weight:600}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  input{flex:1;min-width:160px;background:var(--bg);border:2px solid var(--line);border-radius:8px;color:var(--text);padding:9px;font-size:15px;font-family:inherit}
+  input:focus{outline:none;border-color:var(--acc)}
+  button{background:var(--acc);border:0;color:#04263a;font-weight:700;padding:9px 16px;border-radius:8px;cursor:pointer;font-size:15px;font-family:inherit}
+  button.sec{background:var(--line);color:var(--text)}
+  .note{font-size:12px;color:var(--mute);margin-top:6px}
+  .status{min-height:22px;margin:6px 0;font-size:14px}
+  .status.err{color:var(--bad)} .status.ok{color:var(--ok)}
+  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+  .item{background:var(--bg);border:2px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;transition:.15s}
+  .item:hover{border-color:var(--acc)}
+  .item img{width:100%;height:120px;object-fit:cover;display:block}
+  .item div{padding:6px;font-size:12px;color:var(--mute)}
+  .view{text-align:center}
+  .view img{max-width:100%;max-height:480px;border-radius:10px;display:none}
+  code{word-break:break-all;font-size:12px;color:var(--ok)}
+</style>
+</head>
+<body>
+<h1>🖼️ Pixabay 이미지 가져오기</h1>
+
+<div class="panel">
+  <h2>1. API Key (이 브라우저에만 저장, 코드에는 넣지 않아요)</h2>
+  <div class="row">
+    <input id="key" type="password" placeholder="Pixabay API Key 붙여넣기" autocomplete="off">
+    <button class="sec" id="saveKey">저장</button>
+  </div>
+  <div class="note">키는 이 브라우저(localStorage)에만 저장됩니다. 공개 저장소에 키를 올리지 마세요.</div>
+</div>
+
+<div class="panel">
+  <h2>2. 이미지 검색</h2>
+  <div class="row">
+    <input id="q" placeholder="검색어 (예: apple, cat, 바다)" value="apple">
+    <button id="search">검색</button>
+  </div>
+  <div class="status" id="status"></div>
+  <div class="gallery" id="gallery"></div>
+</div>
+
+<div class="panel">
+  <h2>3. 이미지 주소로 화면에 출력 (검색 결과를 누르면 주소가 자동 입력돼요)</h2>
+  <div class="row">
+    <input id="url" placeholder="https://cdn.pixabay.com/photo/....jpg">
+    <button id="show">출력</button>
+    <button class="sec" id="copy">주소 복사</button>
+  </div>
+  <div class="view" style="margin-top:10px">
+    <img id="img" alt="선택한 이미지">
+    <div class="status" id="vstatus"></div>
+    <code id="cur"></code>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const store={get(k){try{return localStorage.getItem(k)||''}catch(e){return ''}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+$('key').value=store.get('pixabay_key');
+$('saveKey').onclick=()=>{store.set('pixabay_key',$('key').value.trim());setStatus('status','API Key를 저장했어요.','ok')};
+function setStatus(id,t,c){const e=$(id);e.textContent=t;e.className='status'+(c?' '+c:'')}
+
+async function search(){
+  const key=$('key').value.trim(), q=$('q').value.trim();
+  if(!key){setStatus('status','먼저 API Key를 입력해 주세요.','err');return}
+  if(!q){setStatus('status','검색어를 입력해 주세요.','err');return}
+  setStatus('status','불러오는 중...');
+  $('gallery').innerHTML='';
+  try{
+    const u=`https://pixabay.com/api/?key=${encodeURIComponent(key)}&q=${encodeURIComponent(q)}&image_type=photo&per_page=24&safesearch=true`;
+    const res=await fetch(u);
+    if(!res.ok)throw new Error(res.status===400||res.status===401||res.status===403?'API Key가 올바르지 않아요.':'요청 실패 ('+res.status+')');
+    const data=await res.json();
+    if(!data.hits.length){setStatus('status','검색 결과가 없어요.','err');return}
+    setStatus('status',`${data.totalHits}개 중 ${data.hits.length}개를 보여줘요. 이미지를 누르면 주소가 입력돼요.`,'ok');
+    $('gallery').innerHTML=data.hits.map(h=>`<div class="item" data-url="${h.webformatURL}"><img src="${h.previewURL}" alt="${(h.tags||'').replace(/"/g,'')}" loading="lazy"><div>${h.tags}</div></div>`).join('');
+  }catch(e){setStatus('status',e.message||'오류가 발생했어요.','err')}
+}
+$('search').onclick=search;
+$('q').onkeydown=e=>{if(e.key==='Enter')search()};
+$('gallery').onclick=e=>{const it=e.target.closest('.item');if(!it)return;$('url').value=it.dataset.url;showImg()};
+
+function showImg(){
+  const u=$('url').value.trim();
+  if(!/^https?:\/\//i.test(u)){setStatus('vstatus','http:// 또는 https:// 로 시작하는 주소를 넣어 주세요.','err');return}
+  const img=$('img');
+  img.onload=()=>{img.style.display='inline-block';setStatus('vstatus','')};
+  img.onerror=()=>{img.style.display='none';setStatus('vstatus','이미지를 불러오지 못했어요. 주소를 확인해 주세요.','err')};
+  img.src=u;$('cur').textContent=u;
+}
+$('show').onclick=showImg;
+$('url').onkeydown=e=>{if(e.key==='Enter')showImg()};
+$('copy').onclick=async()=>{
+  const u=$('url').value.trim();if(!u)return;
+  try{await navigator.clipboard.writeText(u);setStatus('vstatus','주소를 복사했어요!','ok')}catch(e){setStatus('vstatus','복사에 실패했어요. 직접 선택해서 복사해 주세요.','err')}
+};
+</script>
+</body>
+</html>

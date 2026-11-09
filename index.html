@@ -40,7 +40,8 @@ const items=[
   {f:'code_animation.html', t:'1. 숫자 1~100 더하기', d:'변수 sum, for...of 반복문이 한 줄씩 실행되는 모습'},
   {f:'code_animation2.html', t:'2. 객체 배열 합계 (오타 버그)', d:'amout 오타로 NaN이 되는 과정과 수정본 비교'},
   {f:'code_animation3.html', t:'3. 사과 가게 (초등학생용)', d:'상자 · 로봇 · 저금통으로 배우는 반복문'},
-  {f:'code_animation4.html', t:'4. 장바구니 계산 놀이', d:'왼쪽 장바구니 + 오른쪽 로직, 50개 데이터'}
+  {f:'code_animation4.html', t:'4. 장바구니 계산 놀이', d:'왼쪽 장바구니 + 오른쪽 로직, 50개 데이터'},
+  {f:'image_fetch.html', t:'5. 이미지 가져오기 (Pixabay)', d:'검색해서 이미지 주소를 얻고 화면에 출력'}
 ];
 const $=id=>document.getElementById(id);
 $('menu').innerHTML=items.map((it,k)=>`<button data-k="${k}"><b>${it.t}</b><span>${it.d}</span></button>`).join('');
