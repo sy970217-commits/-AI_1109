@@ -90,7 +90,24 @@
     .card h3 { margin-bottom: 6px; }
     .card p { font-size: .95rem; color: #555; }
 
-    .embed { width: 100%; height: 720px; border: 0; border-radius: 10px; background: #0f172a; }
+    /* ---------- 이미지 가져오기 ---------- */
+    .panel { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0, 0, 0, .1); }
+    .panel h2 { font-size: 1.1rem; color: #0a7ea4; margin-bottom: 12px; }
+    .row { display: flex; gap: 10px; }
+    .row input { flex: 1; min-width: 0; padding: 12px; font-size: 1rem; font-family: inherit; border: 1px solid #c9d3da; border-radius: 8px; }
+    .row input:focus { outline: 2px solid #0a7ea4; border-color: transparent; }
+    .btn { padding: 0 22px; background: #0a7ea4; color: #fff; border: 0; border-radius: 8px; font-size: 1rem; font-family: inherit; cursor: pointer; }
+    .btn:hover { background: #086a8a; }
+    .btn.small { padding: 6px 12px; font-size: .85rem; height: auto; }
+    .note { font-size: .85rem; color: #667; margin-top: 8px; min-height: 1.3em; }
+    .note.err { color: #c62828; }
+    .note.ok { color: #2e7d32; }
+    .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-top: 12px; }
+    .photo { border: 1px solid #dde3e8; border-radius: 8px; overflow: hidden; background: #fff; display: flex; flex-direction: column; }
+    .photo img { width: 100%; height: 130px; object-fit: cover; display: block; cursor: pointer; }
+    .photo .url { padding: 8px 8px 0; font-size: .75rem; color: #556; word-break: break-all; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .photo .btn { margin: 8px; align-self: flex-start; }
+    .preview { display: none; max-width: 100%; max-height: 480px; margin-top: 12px; border-radius: 10px; }
 
     footer { text-align: center; padding: 20px; color: #888; font-size: .9rem; }
 
@@ -126,7 +143,7 @@
           <li><a href="#food" data-page="food">음식점</a></li>
           <li><a href="#bus" data-page="bus">버스</a></li>
           <li><a href="#spot" data-page="spot">관광지</a></li>
-          <li><a href="#image" data-page="image">이미지</a></li>
+          <li><a href="#image" data-page="image">이미지 가져오기</a></li>
         </ul>
       </nav>
     </div>
@@ -186,8 +203,36 @@
     </section>
     <section class="page" id="image">
       <h1>🖼️ 이미지 가져오기</h1>
-      <p>Pixabay에서 이미지를 검색하고 주소를 복사해 화면에 출력합니다.</p>
-      <iframe class="embed" id="imageFrame" data-src="image_fetch.html" title="이미지 가져오기"></iframe>
+      <p>Pixabay에서 이미지를 검색하고, 이미지 주소(URL)를 복사해 화면에 출력합니다.</p>
+
+      <div class="panel">
+        <h2>1. API 키 입력</h2>
+        <div class="row">
+          <input id="pxKey" type="password" placeholder="Pixabay API 키 붙여넣기" autocomplete="off">
+          <button class="btn" id="pxSave">저장</button>
+        </div>
+        <p class="note">키는 이 브라우저(localStorage)에만 저장되며, 코드나 GitHub에는 들어가지 않습니다.</p>
+      </div>
+
+      <div class="panel">
+        <h2>2. 이미지 검색</h2>
+        <div class="row">
+          <input id="pxQuery" placeholder="검색어 (예: 바다, 고양이, apple)" value="바다">
+          <button class="btn" id="pxSearch">검색</button>
+        </div>
+        <p class="note" id="pxStatus"></p>
+        <div class="gallery" id="pxGallery"></div>
+      </div>
+
+      <div class="panel">
+        <h2>3. 주소로 화면에 출력</h2>
+        <div class="row">
+          <input id="pxUrl" placeholder="복사한 이미지 주소(https://...) 붙여넣기">
+          <button class="btn" id="pxShow">출력</button>
+        </div>
+        <p class="note" id="pxShowStatus"></p>
+        <img id="pxImg" class="preview" alt="출력된 이미지">
+      </div>
     </section>
   </main>
 
@@ -203,8 +248,6 @@
       const id = location.hash.slice(1);
       const target = document.getElementById(id) ? id : 'jeju';
       pages.forEach(p => p.classList.toggle('active', p.id === target));
-      const frame = document.getElementById('imageFrame');
-      if (target === 'image' && !frame.src) frame.src = frame.dataset.src;
       links.forEach(a => a.classList.toggle('active', a.dataset.page === target));
       closeMenu();
       window.scrollTo(0, 0);
@@ -224,6 +267,89 @@
 
     window.addEventListener('hashchange', showPage);
     showPage();
+
+    /* ---------- 이미지 가져오기 (Pixabay) ---------- */
+    const $ = id => document.getElementById(id);
+    const store = {
+      get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } },
+      set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    };
+    function setNote(id, text, type) {
+      const el = $(id);
+      el.textContent = text;
+      el.className = 'note' + (type ? ' ' + type : '');
+    }
+
+    $('pxKey').value = store.get('pixabay_key');
+    $('pxSave').addEventListener('click', () => {
+      store.set('pixabay_key', $('pxKey').value.trim());
+      setNote('pxStatus', 'API 키를 저장했습니다.', 'ok');
+    });
+
+    async function searchImages() {
+      const key = $('pxKey').value.trim();
+      const q = $('pxQuery').value.trim();
+      if (!key) return setNote('pxStatus', '먼저 API 키를 입력해 주세요.', 'err');
+      if (!q) return setNote('pxStatus', '검색어를 입력해 주세요.', 'err');
+      setNote('pxStatus', '불러오는 중...');
+      $('pxGallery').textContent = '';
+      try {
+        const url = 'https://pixabay.com/api/?key=' + encodeURIComponent(key) +
+          '&q=' + encodeURIComponent(q) + '&lang=ko&image_type=photo&per_page=12&safesearch=true';
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(res.status === 400 || res.status === 401 || res.status === 403
+          ? 'API 키가 올바르지 않습니다.' : '요청에 실패했습니다. (' + res.status + ')');
+        const data = await res.json();
+        if (!data.hits.length) return setNote('pxStatus', '검색 결과가 없습니다.', 'err');
+        setNote('pxStatus', '총 ' + data.totalHits + '건 중 ' + data.hits.length + '건을 표시합니다.');
+        data.hits.forEach(hit => $('pxGallery').appendChild(makePhoto(hit)));
+      } catch (e) {
+        setNote('pxStatus', e.message || '오류가 발생했습니다.', 'err');
+      }
+    }
+
+    function makePhoto(hit) {
+      const box = document.createElement('div');
+      box.className = 'photo';
+      const img = document.createElement('img');
+      img.src = hit.previewURL;
+      img.alt = hit.tags || '';
+      img.loading = 'lazy';
+      img.addEventListener('click', () => showImage(hit.webformatURL));
+      const url = document.createElement('div');
+      url.className = 'url';
+      url.textContent = hit.webformatURL;
+      const btn = document.createElement('button');
+      btn.className = 'btn small';
+      btn.textContent = '주소 복사';
+      btn.addEventListener('click', async () => {
+        $('pxUrl').value = hit.webformatURL;
+        try {
+          await navigator.clipboard.writeText(hit.webformatURL);
+          btn.textContent = '복사됨!';
+        } catch (e) {
+          btn.textContent = '붙여넣기 칸에 입력됨';
+        }
+        setTimeout(() => { btn.textContent = '주소 복사'; }, 1500);
+      });
+      box.append(img, url, btn);
+      return box;
+    }
+
+    function showImage(src) {
+      const u = (src || $('pxUrl').value).trim();
+      if (!/^https?:\/\//i.test(u)) return setNote('pxShowStatus', 'http:// 또는 https:// 로 시작하는 주소를 입력해 주세요.', 'err');
+      $('pxUrl').value = u;
+      const img = $('pxImg');
+      img.onload = () => { img.style.display = 'block'; setNote('pxShowStatus', ''); };
+      img.onerror = () => { img.style.display = 'none'; setNote('pxShowStatus', '이미지를 불러오지 못했습니다. 주소를 확인해 주세요.', 'err'); };
+      img.src = u;
+    }
+
+    $('pxSearch').addEventListener('click', searchImages);
+    $('pxQuery').addEventListener('keydown', e => { if (e.key === 'Enter') searchImages(); });
+    $('pxShow').addEventListener('click', () => showImage());
+    $('pxUrl').addEventListener('keydown', e => { if (e.key === 'Enter') showImage(); });
   </script>
 </body>
 </html>
