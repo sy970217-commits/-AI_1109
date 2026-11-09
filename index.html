@@ -212,6 +212,9 @@
       hamburger.setAttribute('aria-expanded', String(open));
     });
 
+    // 지금 보고 있는 메뉴를 다시 눌러도(hashchange가 안 일어나도) 모바일 메뉴가 닫히도록
+    links.forEach(a => a.addEventListener('click', closeMenu));
+
     window.addEventListener('hashchange', showPage);
     showPage();
   </script>
